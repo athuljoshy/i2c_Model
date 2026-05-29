@@ -1,5 +1,5 @@
 #include "i2c.h"
-
+##
 void i2c::pecByteSender(unsigned char pecValue)
 {
 	m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
