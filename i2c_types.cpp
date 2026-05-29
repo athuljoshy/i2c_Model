@@ -1,0 +1,51 @@
+#include "i2c_types.h"
+
+
+bool operator==(const i2cDataTlm& lhs, const i2cDataTlm& rhs)
+{
+	return	lhs.start == rhs.start && 
+			lhs.address == rhs.address &&
+			lhs.addr7OrAddr10 == rhs.addr7OrAddr10 &&
+			lhs.readOrWrite == rhs.readOrWrite &&
+			lhs.ackOrNack == rhs.ackOrNack &&
+			lhs.ackCount == rhs.ackCount &&
+			lhs.stop == rhs.stop &&
+			lhs.data == rhs.data &&
+			lhs.repeatedStart == rhs.repeatedStart &&
+			lhs.genCall == rhs.genCall &&
+			lhs.pecValue == rhs.pecValue;
+}
+
+
+std::ostream& operator<<(std::ostream& os, const i2cDataTlm& obj)
+{
+	os	<< " { start : " << obj.start
+		<< " address: " << obj.address
+		<< " addr7 or addr10 " << obj.addr7OrAddr10
+		<< " read or write " << obj.readOrWrite
+		<< " ack or nack " << obj.ackOrNack
+		<< " ack count " << obj.ackCount
+		<< " data: " << obj.data
+		<< " stop: " << obj.stop
+		<< " Repeated Start: " << obj.repeatedStart
+		<< " General Call: " << obj.genCall
+		<< " CRC Value: " << (unsigned int)obj.pecValue
+		<< " } ";
+	return os;
+}
+
+
+void sc_trace(sc_core::sc_trace_file* tf, const i2cDataTlm& obj, const std::string& name)
+{
+	sc_trace(tf, obj.start, name + ".start");
+	sc_trace(tf, obj.address, name + ".address");
+	sc_trace(tf, obj.addr7OrAddr10, name + ".addr7OrAddr10");
+	sc_trace(tf, obj.readOrWrite, name + ".readOrWrite");
+	sc_trace(tf, obj.ackOrNack, name + ".ackOrNack");
+	sc_trace(tf, obj.ackCount, name + ".ackCount");
+	sc_trace(tf, obj.data, name + ".data");
+	sc_trace(tf, obj.stop, name + ".stop");
+	sc_trace(tf, obj.repeatedStart,name+".repeatedStart");
+	sc_trace(tf, obj.genCall,name+".genCall");
+	sc_trace(tf, obj.pecValue,name+".pecValue");
+}
