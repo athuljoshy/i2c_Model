@@ -2,7 +2,7 @@
 
 
 #define SR1_RESET ( 0x0 )
-#define SR1_START ( (0x1) << 0 )
+#define SR1_SB ( (0x1) << 0 )
 #define SR1_ADDR ( (0x1) << 1 )
 #define SR1_BTF ( (0x1) << 2 )
 #define SR1_ADD10 ( (0x1) << 3 )

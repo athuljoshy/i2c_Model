@@ -99,16 +99,20 @@ SC_MODULE(simple_bus_test)
     bus->slave_port(*i2c1);
 
 	i2c0->clockPeriod_i( i2c_busClkPeriod );
+	
 	i2c0->it_event_o( i2c0_interrupt_event );
 	i2c0->it_error_o( i2c0_interrupt_error );
+	
 	i2c0->sda_i( i2c1sdaOutToi2c0sdaIn );
 	i2c0->scl_i( i2c0_sclIn);
 	i2c0->sda_o( i2c0sdaOutToi2c1sdaIn );
 	i2c0->scl_o( i2c0_sclOut );
 
 	i2c1->clockPeriod_i( i2c_busClkPeriod );
+	
 	i2c1->it_event_o( i2c1_interrupt_event );
 	i2c1->it_error_o( i2c1_interrupt_error );
+	
 	i2c1->sda_i( i2c0sdaOutToi2c1sdaIn );
 	i2c1->scl_i( i2c1_sclIn );
 	i2c1->sda_o( i2c1sdaOutToi2c0sdaIn );
