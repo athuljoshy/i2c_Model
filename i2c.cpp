@@ -1,4 +1,15 @@
 #include "i2c.h"
+
+unsigned int i2c::calculateTPCLK(unsigned int freq)
+{
+	if( ( freq >= 2 ) && ( freq <= 50 ) )
+	{
+		return ( 1000 / freq);
+	}
+	else
+	return 0;
+}
+
 void i2c::pecByteSender(unsigned char pecValue)
 {
 	m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
@@ -75,6 +86,7 @@ void i2c::stopBitSender()
 	i2c_SR2 &= ~SR2_MSL;
 	i2c_SR2 &= ~SR2_SMBDEFAULT;
 	i2c_SR2 &= ~SR2_SMBHOST;
+	i2c_SR2 &= ~SR2_BUSY;
 	//SWReset();
 	m_SWResetEvent.notify();	
 }
@@ -571,6 +583,8 @@ void i2c::sdaInputChangeCB()
 				{
 					if(receivedDataTlm.address == 0x0 && receivedDataTlm.genCall == false)
 					{
+						m_communicationStarted = true;
+						i2c_SR2 |= SR2_BUSY;
 						cout<<"Master Received a Start Bit "<<endl;
 					}
 					else if(receivedDataTlm.addr7OrAddr10 == ADDR7)
@@ -585,7 +599,6 @@ void i2c::sdaInputChangeCB()
 								m_slaveTransmitOrReceiver = (receivedDataTlm.readOrWrite == READ)? TRANSMIT: RECEIVE;
 								i2c_SR1 = i2c_SR1 | SR1_ADDR; // setting the bit 1 of SR reg (ADDR) when a matching 7 bit addr comes in. 
 								i2c_SR2 &= ~SR2_DUALF;
-								m_communicationStarted =true;
 								m_slaveAddressAckEvent.notify( (1+7+1) * clockPeriod_i.read() );
 							}
 							else
@@ -594,7 +607,6 @@ void i2c::sdaInputChangeCB()
 								m_slaveTransmitOrReceiver = (receivedDataTlm.readOrWrite == READ)? TRANSMIT: RECEIVE;
 								i2c_SR1 = i2c_SR1 | SR1_ADDR; // setting the bit 1 of SR reg (ADDR) when a matching 7 bit addr comes in. 
 								i2c_SR2 |= SR2_DUALF;
-								m_communicationStarted =true;
 								m_slaveAddressAckEvent.notify( (1+7+1) * clockPeriod_i.read() );
 							}
 							if( m_slaveTransmitOrReceiver == TRANSMIT )
@@ -652,7 +664,6 @@ void i2c::sdaInputChangeCB()
 							m_firstHalf10BitAddr = 0x0;
 							if( receivedDataTlm.address == getOwnAddress() && receivedDataTlm.addr7OrAddr10 == ADDR10 )
 							{
-								m_communicationStarted =true;
 								m_firstOrSecondHalf = WAIT_FIRST_HALF;	
 								m_repeatedStartCheck = REPEATED_START_CAN_COME;
 								cout<<"GOT Matching 10 bit addr "<<hex<<getOwnAddress()<<endl;
@@ -772,7 +783,6 @@ void i2c::sdaInputChangeCB()
 		{
 			if(receivedDataTlm.ackOrNack == ACK)
 			{
-				m_communicationStarted = true;
 				if(receivedDataTlm.genCall == true)
 				{
 					cout<<"Got ack in Master after gen call "<<endl;
@@ -989,7 +999,8 @@ simple_bus_status i2c::write(int *data
 						m_sendingTlm.start = true;
 						m_AckRelatedOrNot = NOT_ACK_RELATED;
 						m_sdaOutPortDriveEvent.notify();
-
+						m_communicationStarted = true;
+						i2c_SR2 |= SR2_BUSY;
 						i2c_SR1 = i2c_SR1 | SR1_SB; //SB field of SR1 register is set on start sent on sda_o line
 						cout<<"BBEEEEEEEEP "<<"SR1 DATA "<<i2c_SR1<<"Mode "<<m_masterOrSlaveMode<<endl;
 						m_SR1ReadDone = false;
@@ -1294,7 +1305,29 @@ simple_bus_status i2c::write(int *data
 				   break;
 
 		case 0x1c: i2c_CCR = *data;
-				   break;
+					cout << this->name() << " " << sc_time_stamp() << " CCR value 0x" << hex << (i2c_CCR & CCR_VALUE) << endl;				   	
+					m_TPCLK = calculateTPCLK( (i2c_CR2 & CR2_FREQ) );
+					if(m_TPCLK == 0)
+					return ;
+					if( i2c_CCR & CCR_FS )
+					{
+						if( i2c_CCR & CCR_DUTY)
+						{
+							clockControlTimeReg.tHigh_ns = 9 * ( i2c_CCR & CCR_VALUE) * m_TPCLK ;
+							clockControlTimeReg.tLow_ns = 16 * ( i2c_CCR & CCR_VALUE) * m_TPCLK ;
+						}
+						else
+						{
+							clockControlTimeReg.tHigh_ns = 1 * ( i2c_CCR & CCR_VALUE) * m_TPCLK ;
+							clockControlTimeReg.tLow_ns = 2 * ( i2c_CCR & CCR_VALUE) * m_TPCLK ;
+						}
+					}
+					else
+					{
+						clockControlTimeReg.tHigh_ns = ( i2c_CCR & CCR_VALUE) * m_TPCLK ;
+						clockControlTimeReg.tLow_ns = ( i2c_CCR & CCR_VALUE) * m_TPCLK ;
+					}
+					break;
 
 		case 0x20: i2c_TRISE = *data;
 				   break;

@@ -46,6 +46,7 @@
 
 
 #define CR2_RESET ( 0x0 )
+#define CR2_FREQ ( 0x3F )
 #define CR2_ITERREN ( (0x1) << 8 )
 #define CR2_ITEVTEN ( (0x1) << 9 )
 #define CR2_ITBUFEN ( (0x1) <<10 )
@@ -63,6 +64,7 @@
 
 
 #define CCR_RESET ( 0x0 ) 
+#define CCR_VALUE ( 0xFFF )
 #define CCR_FS ( (0x1) << 15) 
 #define CCR_DUTY ( (0x1) << 14) 
 

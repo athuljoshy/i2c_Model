@@ -96,6 +96,8 @@ class i2c
 				m_communicationStarted = false;
 				m_pecEnabled = false;
 				m_pecValue = 0x0;
+				m_TPCLK = 0x0;
+				clockControlTimeReg = { 0x0, 0x0 };
 			
 
 				SC_METHOD( sdaInputChangeCB );
@@ -203,6 +205,8 @@ class i2c
 				bool m_communicationStarted;
 				bool m_pecEnabled;
 				unsigned char m_pecValue;
+				clockContolTiming clockControlTimeReg;
+				unsigned int m_TPCLK;
 
 
 				sc_event m_slaveAddressAckEvent;
@@ -233,6 +237,7 @@ class i2c
 				void pecValueReset();
 				void pecValueUpdate(unsigned char byte);
 				void pecByteSender(unsigned char pecValue);
+				unsigned int calculateTPCLK(unsigned int freq);
 }; // end class i2c
 
 inline bool i2c::direct_read(int *data, unsigned int address)

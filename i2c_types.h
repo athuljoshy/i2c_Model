@@ -70,6 +70,12 @@ struct i2cDataTlm
 	unsigned char pecValue;   //0x0
 };
 
+struct clockContolTiming
+{
+	unsigned int tHigh_ns;
+	unsigned int tLow_ns;
+};
+
 bool operator==(const i2cDataTlm& lhs, const i2cDataTlm& rhs);
 
 std::ostream& operator<<(std::ostream& os, const i2cDataTlm& obj);
