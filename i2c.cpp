@@ -1308,7 +1308,7 @@ simple_bus_status i2c::write(int *data
 					cout << this->name() << " " << sc_time_stamp() << " CCR value 0x" << hex << (i2c_CCR & CCR_VALUE) << endl;				   	
 					m_TPCLK = calculateTPCLK( (i2c_CR2 & CR2_FREQ) );
 					if(m_TPCLK == 0)
-					return ;
+					break;
 					if( i2c_CCR & CCR_FS )
 					{
 						if( i2c_CCR & CCR_DUTY)
