@@ -912,19 +912,19 @@ simple_bus_status i2c::read(int *data
 	int offset = address - m_start_address;
 	switch( offset )
 	{
-		case 0x0: *data = i2c_CR1;
+		case 0x0: *data = ( i2c_CR1 & CR1_MASK );
 				  break;
 
-		case 0x4: *data = i2c_CR2;
+		case 0x4: *data = ( i2c_CR2 & CR2_MASK );
 				  break;
 
-		case 0x8: *data = i2c_OAR1;
+		case 0x8: *data = ( i2c_OAR1 & OAR1_MASK );
 				  break;
 
-		case 0xc: *data = i2c_OAR2;
+		case 0xc: *data = ( i2c_OAR2 & OAR2_MASK );
 				  break;
 
-		case 0x10: *data = i2c_DR;
+		case 0x10: *data =  ( i2c_DR & DR_MASK );
 					cout<<"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"<<"came to read"<<endl;
 					m_dataRegYetToRead = false; //clearing since data is read from it;	
 
@@ -943,12 +943,12 @@ simple_bus_status i2c::read(int *data
 				   }
 				   break;
 
-		case 0x14: *data = i2c_SR1;
+		case 0x14: *data = ( i2c_SR1 & SR1_MASK );
 					m_SR1ReadDone = true; //for clearing addr bit when first 2 addr bit is read
 					cout<<"Sr1 Read Doneeeeeeeeee MasterOrSlave"<<m_masterOrSlaveMode<<endl;;
 				   break;
 
-		case 0x18: *data = i2c_SR2;
+		case 0x18: *data = ( i2c_SR2 & SR2_MASK );
 					if(m_SR1ReadDone == true)
 					{
 						i2c_SR1 = i2c_SR1 & ~SR1_ADDR;
@@ -956,10 +956,10 @@ simple_bus_status i2c::read(int *data
 					}
 				   break;
 
-		case 0x1c: *data = i2c_CCR;
+		case 0x1c: *data = ( i2c_CCR & CCR_MASK );
 				   break;
 
-		case 0x20: *data = i2c_TRISE;
+		case 0x20: *data = ( i2c_TRISE & TRISE_MASK );
 				   break;
 
 		default:
@@ -977,7 +977,7 @@ simple_bus_status i2c::write(int *data
 	int offset = address - m_start_address;
 	switch( offset )
 	{
-		case 0x0: i2c_CR1 = *data;
+		case 0x0: i2c_CR1 = ( *data & CR1_MASK );
 				  cout << this->name() << " " << sc_time_stamp() << " CR1 register is being written with value 0x" << hex << i2c_CR1 << endl;
 				  if(m_SR1ReadDone == true)
 				  {
@@ -1063,10 +1063,10 @@ simple_bus_status i2c::write(int *data
 				  }
 				  break;
 
-		case 0x4: i2c_CR2 = *data;
+		case 0x4: i2c_CR2 = ( *data & CR2_MASK );
 				  break;
 
-		case 0x8: receivedOAR1 = (*data) & 0xFFFF;
+		case 0x8: receivedOAR1 = ( *data & OAR1_MASK );
 				  if( receivedOAR1 & (1<<15)) 
 				  {
 					  // it means 10 bit addressing
@@ -1080,7 +1080,7 @@ simple_bus_status i2c::write(int *data
 				  i2c_OAR1 = *data;
 				  break;
 
-		case 0xc: receivedOAR2 = (*data) & 0xFF;
+		case 0xc: receivedOAR2 = ( *data & OAR2_MASK );
 				  if( (receivedOAR2 & 0x1) == 1 )
 				  {
 					m_ENDUAL = true;
@@ -1092,7 +1092,7 @@ simple_bus_status i2c::write(int *data
 				  i2c_OAR2 = *data;
 				  break;
 
-		case 0x10: i2c_DR = *data;
+		case 0x10: i2c_DR = ( *data & DR_MASK );
 				    cout << this->name() << " " << sc_time_stamp() << " DR register is being written with value 0x" << hex << i2c_DR << endl;				   	
 
 					if( ((m_masterOrSlaveMode == MASTER_MODE) && (m_masterHeaderOrResponsePhase == RESPONSE) && (m_masterTransmitOrReceiver == TRANSMIT)) ||
@@ -1304,7 +1304,7 @@ simple_bus_status i2c::write(int *data
 		case 0x18: /* i2c_SR2 = *data; */
 				   break;
 
-		case 0x1c: i2c_CCR = *data;
+		case 0x1c: i2c_CCR = ( *data & CCR_MASK );
 					cout << this->name() << " " << sc_time_stamp() << " CCR value 0x" << hex << (i2c_CCR & CCR_VALUE) << endl;				   	
 					m_TPCLK = calculateTPCLK( (i2c_CR2 & CR2_FREQ) );
 					if(m_TPCLK == 0)
@@ -1329,7 +1329,7 @@ simple_bus_status i2c::write(int *data
 					}
 					break;
 
-		case 0x20: i2c_TRISE = *data;
+		case 0x20: i2c_TRISE = ( *data & TRISE_MASK );
 				   break;
 
 		default:
