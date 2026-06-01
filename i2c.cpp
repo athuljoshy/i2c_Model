@@ -1298,10 +1298,10 @@ simple_bus_status i2c::write(int *data
 					}
 				   break;
 
-		case 0x14: i2c_SR1 = *data;
+		case 0x14:  /* i2c_SR1 = *data; */
 				   break;
 
-		case 0x18: i2c_SR2 = *data;
+		case 0x18: /* i2c_SR2 = *data; */
 				   break;
 
 		case 0x1c: i2c_CCR = *data;
