@@ -47,7 +47,7 @@ void i2c::pecValueReset()
 	m_pecValue = 0x0;
 }
 
-void i2c::handleSMBAlert()
+/* void i2c::handleSMBAlert()
 {
 	if(smb_alert_i.read() == false)
 	{
@@ -67,7 +67,7 @@ void i2c::handleSMBAlert()
 		cout<<"handleSMBAlert HIGH"<<endl;
 	}
 }
-
+ */
 void i2c::stopBitSender()
 {
 	cout<<this->name()<<endl;
@@ -126,7 +126,7 @@ void i2c::SWReset()
 	m_communicationStarted = false;
 	m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, 0x0, false, false};
     //sda_o.write(m_sendingTlm);
-    scl_o.write(true);
+   // scl_o.write(true);
 	m_slaveAddressAckEvent.cancel();
 	m_slaveTenBitAddressAckEvent.cancel();
 	m_slaveResponsePhaseStartEvent.cancel();
@@ -499,7 +499,7 @@ void i2c::sdaInputChangeCB()
 						m_slaveTransmitOrReceiver = TRANSMIT;
 						m_sdaAckDeassertEvent.notify(clockPeriod_i.read());
 						i2c_SR1 &= ~SR1_SMBALERT;
-						smb_alert_o.write(true);
+						//smb_alert_o.write(true);
 						if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 						{
 							cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
@@ -1042,7 +1042,7 @@ simple_bus_status i2c::write(int *data
 						i2c_SR1 = SR1_RESET;
 						i2c_SR2 = SR2_RESET;
 				  }
-				  //SMB_alert
+				 /*  //SMB_alert
 				  if(i2c_CR1 & CR1_ALERT)
 				  {
 					smb_alert_o.write( false );
@@ -1050,7 +1050,7 @@ simple_bus_status i2c::write(int *data
 				  else
 				  {
 					smb_alert_o.write( true );
-				  }
+				  } */
 				  //Software Reset
 				  if(i2c_CR1 & CR1_SWRST )
 				  {

@@ -128,10 +128,10 @@ class i2c
 				dont_initialize();
 				sensitive << m_updateDataRegEvent;
 
-				SC_METHOD( handleSMBAlert );
+				/* SC_METHOD( handleSMBAlert );
 				dont_initialize();
 				sensitive << smb_alert_i;
-
+ */
 				SC_METHOD( stopBitSender );
 				dont_initialize();
 				sensitive << m_stopBitSenderEvent;
@@ -160,12 +160,12 @@ class i2c
 				sc_out< bool > it_error_o;
 
 				sc_in< i2cDataTlm > sda_i;
-				sc_in< bool > scl_i;
+				sc_in< i2cSclTlm > scl_i;
 				sc_out< i2cDataTlm > sda_o;
-				sc_out< bool > scl_o;
+				sc_out< i2cSclTlm > scl_o;
 
-				sc_in< bool > smb_alert_i;
-				sc_out< bool > smb_alert_o;
+				/* sc_in< bool > smb_alert_i;
+				sc_out< bool > smb_alert_o; */
 
 		private:
 				int i2c_CR1;

@@ -49,3 +49,23 @@ void sc_trace(sc_core::sc_trace_file* tf, const i2cDataTlm& obj, const std::stri
 	sc_trace(tf, obj.genCall,name+".genCall");
 	sc_trace(tf, obj.pecValue,name+".pecValue");
 }
+
+bool operator==(const i2cSclTlm& lhs, const i2cSclTlm& rhs)
+{
+    return  lhs.period == rhs.period &&
+            lhs.idleOrToggling == rhs.idleOrToggling;
+}
+ 
+std::ostream& operator<<(std::ostream& os, const i2cSclTlm& obj)
+{
+    os  << " { period: " << obj.period
+        << " idleOrToggling: " << obj.idleOrToggling
+        << " } ";
+    return os;
+}
+ 
+void sc_trace(sc_core::sc_trace_file* tf, const i2cSclTlm& obj, const std::string& name)
+{
+    sc_trace(tf, obj.period, name + ".period");
+    sc_trace(tf, obj.idleOrToggling, name + ".idleOrToggling");
+}

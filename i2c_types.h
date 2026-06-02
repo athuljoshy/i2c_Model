@@ -55,6 +55,11 @@ enum repeatedStartOrData
 	REPEAT_START
 };
 
+enum sclStatus {
+    IDLE,
+    TOGGLING
+};
+
 struct i2cDataTlm
 {								// default values
 	bool start;					// false
@@ -76,8 +81,21 @@ struct clockContolTiming
 	unsigned int tLow_ns;
 };
 
+struct i2cSclTlm
+{
+	sc_time period;
+	enum sclStatus idleOrToggling;
+};
+
 bool operator==(const i2cDataTlm& lhs, const i2cDataTlm& rhs);
 
 std::ostream& operator<<(std::ostream& os, const i2cDataTlm& obj);
 
 void sc_trace(sc_core::sc_trace_file* tf, const i2cDataTlm& obj, const std::string& name);
+
+bool operator==(const i2cSclTlm& lhs, const i2cSclTlm& rhs);
+ 
+std::ostream& operator<<(std::ostream& os, const i2cSclTlm& obj);
+ 
+void sc_trace(sc_core::sc_trace_file* tf, const i2cSclTlm& obj, const std::string& name);
+ 
