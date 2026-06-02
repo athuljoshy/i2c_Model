@@ -925,6 +925,10 @@ simple_bus_status i2c::read(int *data
 				  break;
 
 		case 0x10: *data =  ( i2c_DR & DR_MASK );
+					if((i2c_CR1 & CR1_PE)==0)
+					{
+						break;
+					}
 					cout<<"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"<<"came to read"<<endl;
 					m_dataRegYetToRead = false; //clearing since data is read from it;	
 
@@ -979,6 +983,14 @@ simple_bus_status i2c::write(int *data
 	{
 		case 0x0: i2c_CR1 = ( *data & CR1_MASK );
 				  cout << this->name() << " " << sc_time_stamp() << " CR1 register is being written with value 0x" << hex << i2c_CR1 << endl;
+				 
+				  if((i2c_CR1 & CR1_PE)==0)
+				  {
+						i2c_SR1 = SR1_RESET;
+						i2c_SR2 = SR2_RESET;
+						break;
+				  }
+
 				  if(m_SR1ReadDone == true)
 				  {
 					cout<<"Helooooooooooooooooooooooooooooooooooooooooooo"<<endl;
@@ -1037,11 +1049,6 @@ simple_bus_status i2c::write(int *data
 					  m_masterOrSlaveMode = SLAVE_MODE;
 				  }
 
-				  if((i2c_CR1 & CR1_PE)==0)
-				  {
-						i2c_SR1 = SR1_RESET;
-						i2c_SR2 = SR2_RESET;
-				  }
 				 /*  //SMB_alert
 				  if(i2c_CR1 & CR1_ALERT)
 				  {
@@ -1094,7 +1101,10 @@ simple_bus_status i2c::write(int *data
 
 		case 0x10: i2c_DR = ( *data & DR_MASK );
 				    cout << this->name() << " " << sc_time_stamp() << " DR register is being written with value 0x" << hex << i2c_DR << endl;				   	
-
+				  	if((i2c_CR1 & CR1_PE)==0)
+					{
+						break;
+					}
 					if( ((m_masterOrSlaveMode == MASTER_MODE) && (m_masterHeaderOrResponsePhase == RESPONSE) && (m_masterTransmitOrReceiver == TRANSMIT)) ||
 					((m_masterOrSlaveMode == SLAVE_MODE) && (m_slaveHeaderOrResponsePhase == RESPONSE) && (m_slaveTransmitOrReceiver == TRANSMIT)) )
 						{
