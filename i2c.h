@@ -139,6 +139,14 @@ class i2c
 				SC_METHOD( SWReset );
 				dont_initialize();
 				sensitive << m_SWResetEvent;
+
+				SC_METHOD( errorInteruptCB );
+				dont_initialize();
+				sensitive << m_errorEnableIntEvent;
+
+				SC_METHOD( eventInteruptCB );
+				dont_initialize();
+				sensitive << m_eventEnableIntEvent;
 		}
 
 				// destructor
@@ -219,6 +227,8 @@ class i2c
 				sc_event m_masterResponsePhaseStartEvent;
 				sc_event m_stopBitSenderEvent;
 				sc_event m_SWResetEvent;
+				sc_event m_eventEnableIntEvent;
+				sc_event m_errorEnableIntEvent;
 
 				unsigned int getOwnAddress();
 				void sdaInputChangeCB();
@@ -238,6 +248,8 @@ class i2c
 				void pecValueUpdate(unsigned char byte);
 				void pecByteSender(unsigned char pecValue);
 				unsigned int calculateTPCLK(unsigned int freq);
+				void errorInteruptCB();
+				void eventInteruptCB();
 }; // end class i2c
 
 inline bool i2c::direct_read(int *data, unsigned int address)
