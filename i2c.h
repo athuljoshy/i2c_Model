@@ -108,11 +108,11 @@ class i2c
 				dont_initialize();
 				sensitive << m_slaveAddressAckEvent << m_slaveTenBitAddressAckEvent;
 
-				SC_METHOD( masterResponsePhase );
+				SC_METHOD( masterResponseTransisitionPhase );
 				dont_initialize();
 				sensitive << m_masterResponsePhaseStartEvent;
 
-				SC_METHOD( slaveResponsePhase );
+				SC_METHOD( slaveResponseTransisitionPhase );
 				dont_initialize();
 				sensitive << m_slaveResponsePhaseStartEvent;
 
@@ -147,6 +147,38 @@ class i2c
 				SC_METHOD( eventInteruptCB );
 				dont_initialize();
 				sensitive << m_eventEnableIntEvent;
+				
+				/* SC_METHOD( slaveHeaderPhase );
+				dont_initialize();
+				sensitive << m_slaveHeaderPhaseEvent;
+
+				SC_METHOD( slave7BitHeaderPhase );
+				dont_initialize();
+				sensitive << m_slave7BitHeaderPhaseEvent;
+
+				SC_METHOD( slave10BitHeaderPhase );
+				dont_initialize();
+				sensitive << m_slave10BitHeaderPhaseEvent;
+
+				SC_METHOD( slaveResponsePhase );
+				dont_initialize();
+				sensitive << m_slaveResponsePhaseEvent;
+
+				SC_METHOD( masterHeaderPhase );
+				dont_initialize();
+				sensitive << m_masterHeaderPhaseEvent;
+
+				SC_METHOD( master7BitHeaderPhase );
+				dont_initialize();
+				sensitive << m_master7BitHeaderPhaseEvent;
+
+				SC_METHOD( master10BitHeaderPhase );
+				dont_initialize();
+				sensitive << m_master10BitHeaderPhaseEvent;
+
+				SC_METHOD( masterResponsePhase );
+				dont_initialize();
+				sensitive << m_masterResponsePhaseEvent; */
 		}
 
 				// destructor
@@ -229,17 +261,29 @@ class i2c
 				sc_event m_SWResetEvent;
 				sc_event m_eventEnableIntEvent;
 				sc_event m_errorEnableIntEvent;
+				sc_event m_slaveHeaderPhaseEvent;
+				sc_event m_slave7BitHeaderPhaseEvent;
+				sc_event m_slave10BitHeaderPhaseEvent;
+				sc_event m_slaveResponsePhaseEvent;
+				sc_event m_slave7BitResponsePhaseEvent;
+				sc_event m_slave10BitResponsePhaseEvent;
+				sc_event m_masterHeaderPhaseEvent;
+				sc_event m_master7BitHeaderPhaseEvent;
+				sc_event m_master10BitHeaderPhaseEvent;
+				sc_event m_masterResponsePhaseEvent;
+				sc_event m_master7BitResponsePhaseEvent;
+				sc_event m_master10BitResponsePhaseEvent;
 
 				unsigned int getOwnAddress();
 				void sdaInputChangeCB();
 
 				void slaveAddressAckEventCB();
 				void ackOrNackCheck(enum ack ackOrNack);
-				void slaveResponsePhase();
+				void slaveResponseTransisitionPhase();
 				void sdaOutPortDriveCB(); 
 				void transmitDataEventCB();
 				void updateDataRegEventCB();
-				void masterResponsePhase();
+				void masterResponseTransisitionPhase();
 				void stopBitSender();
 				void SWReset();
 				void handleSMBAlert();
@@ -250,6 +294,27 @@ class i2c
 				unsigned int calculateTPCLK(unsigned int freq);
 				void errorInteruptCB();
 				void eventInteruptCB();
+				void slaveHeaderPhase(i2cDataTlm& receivedDataTlm);
+				void slave7BitHeaderPhase(const i2cDataTlm& receivedDataTlm);
+				void slave10BitHeaderPhase(i2cDataTlm& receivedDataTlm);
+				void slaveResponsePhase(const i2cDataTlm& receivedDataTlm);
+				void masterHeaderPhase(const i2cDataTlm& receivedDataTlm);
+				void master7BitHeaderPhase();
+				void master10BitHeaderPhase();
+				void masterResponsePhase(const i2cDataTlm& receivedDataTlm);
+				void handleAlertAddress();
+				void handleDefaultAddress(const i2cDataTlm& receivedDataTlm);
+				void handleHostAddress(const i2cDataTlm& receivedDataTlm);
+				void handleGeneralCall();
+				void handleRepeatedStart(const i2cDataTlm& receivedDataTlm);
+				void handlePEC(const i2cDataTlm& receivedDataTlm);
+				void handleSlaveStop();
+				void handleSlaveTransmit(const i2cDataTlm& receivedDataTlm);
+				void handleMasterTransmit(const i2cDataTlm& receivedDataTlm);
+				void handleMasterReceive(const i2cDataTlm& receivedDataTlm);
+				void handleFirstHalf10BitAddr(i2cDataTlm& receivedDataTlm);
+				void handleSecondHalf10BitAddr(i2cDataTlm& receivedDataTlm);
+
 }; // end class i2c
 
 inline bool i2c::direct_read(int *data, unsigned int address)

@@ -1,0 +1,71 @@
+[33mcommit 079559ce1da51f9aa5824918a7ba02467c4dda68[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature[m[33m, [m[1;32mold-version[m[33m)[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Fri Jun 5 15:28:51 2026 +0530
+
+    addr 3 cond all done
+
+[33mcommit 727a2c4080a56d2791cf335032764d021eaa0227[m[33m ([m[1;32mtest_feature[m[33m)[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Thu Jun 4 15:15:33 2026 +0530
+
+    working and tested model for first 3 core test cases
+
+[33mcommit 223f05a0e16a07e0562f77b66cc5601ea7218d46[m[33m ([m[1;31morigin/test_feature[m[33m, [m[1;31morigin/feature[m[33m)[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Tue Jun 2 15:59:13 2026 +0530
+
+    I2C Register Model and Reset Test Full passing model
+
+[33mcommit b0c96801e15afacdda8bb21c2cc51dd2afb3b813[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Tue Jun 2 15:45:12 2026 +0530
+
+    reg 1,2 of init passed
+
+[33mcommit 9ef6811efadbda34ed32e653f4e356ee288e1a4b[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Mon Jun 1 12:13:08 2026 +0530
+
+    Made read ,write, reserved bit proper in read and write using mask
+
+[33mcommit 4a0aa23ad319e6da4f647924dcbffa9d03a46f5a[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Mon Jun 1 11:06:53 2026 +0530
+
+    Removing r/w from status register to make it read only
+
+[33mcommit c61add1a1526ba1a4d4dfc7b52e7e8ba47a203ad[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Sat May 30 08:33:02 2026 +0530
+
+    CCR Reg, FREQ in CR2, BUSY bit in SR2 reg ---initial setups
+
+[33mcommit 08b917d8b975d6a5a75a88a126ee4e67bfc57bfb[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Sat May 30 08:28:21 2026 +0530
+
+    CCR Reg, FREQ in CR2, BUSY bit in SR2 reg ---initial setups
+
+[33mcommit ff177582c9d71cf18a604877e25671ec48826793[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Fri May 29 17:04:24 2026 +0530
+
+    ITEVTEN & ITBUFEN initail setup
+
+[33mcommit 3d280e7f08e4d5b27b95fa7e75448d80af792ad0[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Fri May 29 17:03:38 2026 +0530
+
+    ITEVTEN & ITBUFEN initail setup
+
+[33mcommit c381ba13ff35063310b506a84a6d5e5e4815d087[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Fri May 29 14:02:04 2026 +0530
+
+    trial push
+
+[33mcommit 9679020fdbef99d69673aaf94ed33224e0285c45[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m
+Author: AthulJoshy <athuljoshykodappully@gmail.com>
+Date:   Fri May 29 13:09:04 2026 +0530
+
+    May 29 First Commit
