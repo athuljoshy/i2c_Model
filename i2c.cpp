@@ -388,7 +388,7 @@ void i2c::transmitDataEventCB()
 	{
 		if( m_DRwritten == false )
 		{
-			i2c_SR1 |= SR1_TxE;
+
 			if( i2c_CR1 & CR1_NOSTRETCH )
 			{
 				i2c_SR1 |= SR1_OVR;	
@@ -410,6 +410,8 @@ void i2c::transmitDataEventCB()
 			m_DRwritten = false;
 		}
 	}
+	i2c_SR1 |= SR1_TxE;
+	i2c_SR1 |= SR1_BTF;		
 	m_ongoingTransmit = true;
 }
 
