@@ -98,7 +98,14 @@ class i2c
 				m_pecValue = 0x0;
 				m_TPCLK = 0x0;
 				clockControlTimeReg = { 0x0, 0x0 };
-			
+				m_connectionEstablished = false; 
+
+				m_eventIrqPending = false;
+				m_errorIrqPending = false;
+				m_eventIrqSR1Latch = 0x0;
+				m_eventIrqSR2Latch = 0x0;
+				m_errorIrqSR1Latch = 0x0;
+				m_errorIrqSR2Latch = 0x0;
 
 				SC_METHOD( sdaInputChangeCB );
 				dont_initialize();
@@ -140,14 +147,29 @@ class i2c
 				dont_initialize();
 				sensitive << m_SWResetEvent;
 
-				SC_METHOD( errorInteruptCB );
+ 				 SC_METHOD( errorInteruptCB );
 				dont_initialize();
 				sensitive << m_errorEnableIntEvent;
-
-				SC_METHOD( eventInteruptCB );
+/*  
+				SC_METHOD( errorIntClearCB );
+				dont_initialize();
+				sensitive << m_errorIntClearEvent;
+ */
+ 				SC_METHOD( eventInteruptCB );
 				dont_initialize();
 				sensitive << m_eventEnableIntEvent;
-				
+/*  
+SC_METHOD(eventIrqDriverCB);
+    sensitive << m_eventIrqDriveEvent;
+    dont_initialize();
+
+SC_METHOD(errorIrqDriverCB);
+    sensitive << m_errorIrqDriveEvent;
+    dont_initialize();
+ 				SC_METHOD( eventIntClearCB );
+				dont_initialize();
+				sensitive << m_eventIntClearEvent;
+ */ 				
 				/* SC_METHOD( slaveHeaderPhase );
 				dont_initialize();
 				sensitive << m_slaveHeaderPhaseEvent;
@@ -247,7 +269,15 @@ class i2c
 				unsigned char m_pecValue;
 				clockContolTiming clockControlTimeReg;
 				unsigned int m_TPCLK;
-
+				bool m_connectionEstablished;
+				
+				bool m_eventIrqPending;
+				bool m_errorIrqPending;
+				unsigned int m_eventIrqSR1Latch;
+ 				unsigned int m_eventIrqSR2Latch;
+				unsigned int m_errorIrqSR1Latch;
+				unsigned int m_errorIrqSR2Latch;
+ 
 
 				sc_event m_slaveAddressAckEvent;
 				sc_event m_slaveTenBitAddressAckEvent;
@@ -261,6 +291,10 @@ class i2c
 				sc_event m_SWResetEvent;
 				sc_event m_eventEnableIntEvent;
 				sc_event m_errorEnableIntEvent;
+				sc_event m_errorIntClearEvent;
+				sc_event m_eventIntClearEvent;
+				sc_event m_eventIrqDriveEvent;
+				sc_event m_errorIrqDriveEvent;
 				sc_event m_slaveHeaderPhaseEvent;
 				sc_event m_slave7BitHeaderPhaseEvent;
 				sc_event m_slave10BitHeaderPhaseEvent;
@@ -294,6 +328,8 @@ class i2c
 				unsigned int calculateTPCLK(unsigned int freq);
 				void errorInteruptCB();
 				void eventInteruptCB();
+				void eventIntClearCB();
+				void errorIntClearCB();
 				void slaveHeaderPhase(i2cDataTlm& receivedDataTlm);
 				void slave7BitHeaderPhase(const i2cDataTlm& receivedDataTlm);
 				void slave10BitHeaderPhase(i2cDataTlm& receivedDataTlm);
@@ -312,8 +348,10 @@ class i2c
 				void handleSlaveTransmit(const i2cDataTlm& receivedDataTlm);
 				void handleMasterTransmit(const i2cDataTlm& receivedDataTlm);
 				void handleMasterReceive(const i2cDataTlm& receivedDataTlm);
-				void handleFirstHalf10BitAddr(i2cDataTlm& receivedDataTlm);
-				void handleSecondHalf10BitAddr(i2cDataTlm& receivedDataTlm);
+				void handleSlaveFirstHalf10BitAddr(i2cDataTlm& receivedDataTlm);
+				void handleSlaveSecondHalf10BitAddr(i2cDataTlm& receivedDataTlm);
+				void eventIrqDriverCB();
+				void errorIrqDriverCB();
 
 }; // end class i2c
 

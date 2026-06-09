@@ -5,11 +5,64 @@ void i2c::errorInteruptCB()
 	it_error_o.write(true);
 }
 
+void i2c::errorIntClearCB()
+{
+    it_error_o.write(false);
+}
+
 void i2c::eventInteruptCB()
 {
 	
 	it_event_o.write(true);
 }
+
+void i2c::eventIntClearCB()
+{
+    it_event_o.write(false);
+}
+/* 
+
+// Called wherever m_eventEnableIntEvent.notify() was called before:
+void i2c::eventInteruptCB()
+{
+    m_eventIrqPending = true;
+    m_eventIrqDriveEvent.notify(SC_ZERO_TIME);   // delta 1: drive high
+}
+
+void i2c::eventIrqDriverCB()
+{
+    if(m_eventIrqPending)
+    {
+        m_eventIrqPending = false;
+        it_event_o.write(true);                  // rising edge visible this delta
+        m_eventIrqDriveEvent.notify(SC_ZERO_TIME); // schedule delta 2: drive low
+    }
+    else
+    {
+        it_event_o.write(false);                 // falling edge next delta
+    }
+}
+
+// Same pattern for error:
+void i2c::errorInteruptCB()
+{
+    m_errorIrqPending = true;
+    m_errorIrqDriveEvent.notify(SC_ZERO_TIME);
+}
+
+void i2c::errorIrqDriverCB()
+{
+    if(m_errorIrqPending)
+    {
+        m_errorIrqPending = false;
+        it_error_o.write(true);
+        m_errorIrqDriveEvent.notify(SC_ZERO_TIME);
+    }
+    else
+    {
+        it_error_o.write(false);
+    }
+} */ 
 
 unsigned int i2c::calculateTPCLK(unsigned int freq)
 {
@@ -68,8 +121,9 @@ void i2c::pecValueReset()
             i2c_SR1 |= SR1_SMBALERT;
 			if( (i2c_SR1 & SR1_SMBALERT) && (i2c_CR2 & CR2_ITEVTEN) )
 			{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 				cout<<"The SMBALERT and ITEVTEN so sending interupt"<<endl;
-				m_errorEnableIntEvent.notify();;
+				errorInteruptCB();m_errorEnableIntEvent.notify();;
 			}
         }
 	}
@@ -90,7 +144,7 @@ void i2c::stopBitSender()
 	m_AckRelatedOrNot = NOT_ACK_RELATED;
 	m_stopCondition = true;
 	i2c_SR1 &= ~SR1_TxE;
-	i2c_SR1 &= ~SR1_AF;
+	//i2c_SR1 &= ~SR1_AF;
 	m_sdaOutPortDriveEvent.notify();
 	m_DRwritten = false;
 	i2c_SR2 &= ~SR2_TRA;
@@ -104,6 +158,7 @@ void i2c::stopBitSender()
 
 void i2c::SWReset()
 {
+	cout<<"Sr is not cleared here "<<endl;
 	i2c_CR1 = CR1_RESET;
 	i2c_CR2 = CR2_RESET;
 	i2c_OAR1 = OAR1_RESET;
@@ -173,11 +228,13 @@ void i2c::slaveAddressAckEventCB()
 		else if(m_firstOrSecondHalf == WAIT_FIRST_HALF && m_repeatedStartCheck == REPEATED_START_FAILED)
 		{
 			m_slaveResponsePhaseStartEvent.notify();
+			m_repeatedStartCheck = REPEATED_START_CANNOT_COME;
 		}
 		else if( m_addressingMode == ADDR10 && m_repeatedStartCheck == REPEATED_START_SUCESS)
 		{			
 			cout<<"first or second half of 10 bit"<<m_firstOrSecondHalf<<"  Rep startcond sucess in slave"<<m_repeatedStartCheck<<endl;
 			m_repeatedStartCondition = false;
+			m_repeatedStartCheck = REPEATED_START_CANNOT_COME;
 			m_slaveResponsePhaseStartEvent.notify();
 		}
 	}
@@ -197,34 +254,37 @@ void i2c::ackOrNackCheck(enum ack ackOrNack)
 	{
 		i2c_SR1 |= SR1_AF;
 		i2c_SR1 &= ~SR1_TxE;
-		if( (i2c_SR1 & SR1_AF) && (i2c_CR2 & CR2_ITEVTEN) )
+		if( (i2c_SR1 & SR1_AF) && (i2c_CR2 & CR2_ITERREN) )
 		{
-			cout<<"The AF and ITEVTEN so sending interupt"<<endl;
-			m_errorEnableIntEvent.notify();;
+			cout << this->name() << " " << sc_time_stamp() << " ";
+			cout<<"The AF and ITERREN so sending interupt"<<endl;
+			/*errorInteruptCB();*/m_errorEnableIntEvent.notify();
 		}
 	}
 }
 
 void i2c::updateDataRegEventCB()
 {
-	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
+	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ <<endl;
 	i2cDataTlm receivedDataTlm = sda_i.read();
 	if(m_pecEnabled)
 	{
 		pecValueUpdate( (unsigned char)(receivedDataTlm.data & 0xFF) );
 	}
+		cout<<"The data reg yet to red and CR1 reg value is "<<m_dataRegYetToRead<<" "<<i2c_CR1<<endl;
 	if(m_dataRegYetToRead == true)
 	{
 		if( i2c_CR1 & CR1_NOSTRETCH )
 		{
 			i2c_SR1 = i2c_SR1 | SR1_OVR; // new data arrived before data is read from the dr register so setting OVER RUN. 
-			if( (i2c_SR1 & SR1_OVR) && (i2c_CR2 & CR2_ITEVTEN) )
+			if( (i2c_SR1 & SR1_OVR) && (i2c_CR2 & CR2_ITERREN ) )
 			{
+				cout << this->name() << " " << sc_time_stamp() << " " ;
 				cout<<"The OVR and ITEVTEN so sending interupt"<<endl;
-				m_errorEnableIntEvent.notify();;
+				/*errorInteruptCB();*/m_errorEnableIntEvent.notify();
 			}
 			cout << "Same Data DR NOt UPDATED DUE TO OVR " << hex << i2c_DR << endl;
-			m_AckRelatedOrNot = ACK_RELATED;
+			m_AckRelatedOrNot = NACK_RELATED;
 			m_sdaOutPortDriveEvent.notify(clockPeriod_i.read());
 			return;
 	}
@@ -237,8 +297,9 @@ void i2c::updateDataRegEventCB()
 			}
 			if( (i2c_SR1 & SR1_BTF) && (i2c_CR2 & CR2_ITEVTEN) )
 			{
+				cout << this->name() << " " << sc_time_stamp() << " " ;
 				cout<<"The BTF and ITEVTEN so sending interupt"<<endl;
-				m_eventEnableIntEvent.notify();;
+				/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 			}
 		}
 	}
@@ -253,7 +314,7 @@ void i2c::updateDataRegEventCB()
 	if( (i2c_SR1 & SR1_RxNE) && (i2c_CR2 & CR2_ITEVTEN) && ( i2c_CR2 & CR2_ITBUFEN ))
 	{
 		cout<<"The RxNE,ITBUFEN and ITEVTEN so sending interupt"<<endl;
-		m_eventEnableIntEvent.notify();;
+		/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 	}
 	i2c_DR = receivedDataTlm.data;
 	cout << "i2c_DR " << hex << i2c_DR << endl;
@@ -269,7 +330,7 @@ void i2c::sdaOutPortDriveCB()
 	{
 		if( i2c_CR1 & CR1_ACK )
 		{ 
-			cout<<"SDAOUT ADDRMode "<<m_addressingMode<<endl;
+			cout<<"SDAOUT Sending ACK in AddrMode "<<m_addressingMode<<endl;
 			m_ackCount++;
 			// prepare and send the ack
 			m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
@@ -292,7 +353,7 @@ void i2c::sdaOutPortDriveCB()
 	{
 		if( (i2c_SR1 & SR1_PECERR) )
 		{
-			cout<<"SDAOUT ADDRMode NAACK"<<m_addressingMode<<endl;
+			cout<<"SDAOUT Entered NACK in AddrMode "<<m_addressingMode<<endl;
 			m_ackCount++;
 			// prepare and send the ack
 			m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
@@ -303,7 +364,7 @@ void i2c::sdaOutPortDriveCB()
 		}
 		else if( i2c_CR1 & CR1_ACK )
 		{ 
-			cout<<"SDAOUT ADDRMode NACCk"<<m_addressingMode<<endl;
+			cout<<"SDAOUT Sending NACK in AddrMode "<<m_addressingMode<<endl;
 			m_ackCount++;
 			// prepare and send the ack
 			m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
@@ -332,17 +393,17 @@ void i2c::sdaInputChangeCB()
 	
 	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
 	i2cDataTlm receivedDataTlm = sda_i.read();
-    // Repeated start fail detection
-    if (receivedDataTlm.repeatedStart == false && m_startCondition == false && m_repeatedStartCheck == REPEATED_START_CAN_COME)
-    {
-        m_repeatedStartCondition = false;
-        m_repeatedStartCheck = REPEATED_START_FAILED;
-        slaveResponseTransisitionPhase();  
-        return;
-    }
-
+    
     if (m_masterOrSlaveMode == SLAVE_MODE)
     {
+		// Repeated start fail detection
+		if (receivedDataTlm.repeatedStart == false && receivedDataTlm.start == false && m_repeatedStartCheck == REPEATED_START_CAN_COME)
+		{
+			cout<<"Repeated start failed so recever moving to respose phase"<<endl;
+			m_repeatedStartCondition = false;
+			m_repeatedStartCheck = REPEATED_START_FAILED;
+			slaveResponseTransisitionPhase();  
+		}
 		if(receivedDataTlm.pecValue != 0x0)
 		{
 			handlePEC(receivedDataTlm);
@@ -350,7 +411,15 @@ void i2c::sdaInputChangeCB()
 		}
 		else if(receivedDataTlm.stop == true)
 		{
-			handleSlaveStop();	
+			if(m_connectionEstablished == true)
+			{
+			m_connectionEstablished = false;
+			handleSlaveStop();
+			}
+			else
+			{
+				cout<<"Random Stop not accepted"<<endl;
+			}
 			return;
 		}
 
@@ -392,16 +461,17 @@ void i2c::transmitDataEventCB()
 			if( i2c_CR1 & CR1_NOSTRETCH )
 			{
 				i2c_SR1 |= SR1_OVR;	
-				if( (i2c_SR1 & SR1_OVR) && (i2c_CR2 & CR2_ITEVTEN) )
+				if( (i2c_SR1 & SR1_OVR) && (i2c_CR2 & CR2_ITERREN ) )
 				{
+					cout << this->name() << " " << sc_time_stamp() << " " ;
 					cout<<"The OVR and ITEVTEN so sending interupt"<<endl;
-					m_errorEnableIntEvent.notify();
+					/*errorInteruptCB();*/m_errorEnableIntEvent.notify();
 				}
 			}
 			if( (i2c_SR1 & SR1_TxE) && (i2c_CR2 & CR2_ITEVTEN) && ( i2c_CR2 & CR2_ITBUFEN ))
 			{
 				cout<<"The TxE,ITBUFEN and ITEVTEN so sending interupt"<<endl;
-				m_eventEnableIntEvent.notify();
+				/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 			}
 		}		
 		else
@@ -429,7 +499,7 @@ void i2c::slaveResponseTransisitionPhase()
 		if( (i2c_SR1 & SR1_TxE) && (i2c_CR2 & CR2_ITEVTEN) && ( i2c_CR2 & CR2_ITBUFEN ))
 		{
 			cout<<"The TxE,ITBUFEN and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 		m_transmitDataEvent.notify(SC_ZERO_TIME);
 	}
@@ -454,7 +524,7 @@ void i2c::masterResponseTransisitionPhase()
 		if( (i2c_SR1 & SR1_TxE) && (i2c_CR2 & CR2_ITEVTEN) && ( i2c_CR2 & CR2_ITBUFEN ))
 		{
 			cout<<"The TxE,ITBUFEN and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 	}
 	else
@@ -495,10 +565,11 @@ void i2c::handleMasterReceive(const i2cDataTlm& receivedDataTlm)
 		else
 		{
 			i2c_SR1 |= SR1_PECERR; 
-			if( (i2c_SR1 & SR1_PECERR) && (i2c_CR2 & CR2_ITEVTEN) )
+			if( (i2c_SR1 & SR1_PECERR) && (i2c_CR2 & CR2_ITERREN) )
 			{
+				cout << this->name() << " " << sc_time_stamp() << " " ;
 				cout<<"The PECERR and ITEVTEN so sending interupt"<<endl;
-				m_errorEnableIntEvent.notify();;
+				/*errorInteruptCB();*/m_errorEnableIntEvent.notify();
 			}
 			m_AckRelatedOrNot = NACK_RELATED;
 			m_sdaAckDeassertEvent.notify( 8 * clockPeriod_i.read() );
@@ -542,19 +613,28 @@ void i2c::handleMasterTransmit(const i2cDataTlm& receivedDataTlm)
 			i2c_SR1 |= SR1_BTF;
 			if( (i2c_SR1 & SR1_BTF) && (i2c_CR2 & CR2_ITEVTEN) )
 			{
+				cout << this->name() << " " << sc_time_stamp() << " " ;
 				cout<<"The BTF and ITEVTEN so sending interupt"<<endl;
-				m_eventEnableIntEvent.notify();
+				/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 			}
 			if( (i2c_SR1 & SR1_TxE) && (i2c_CR2 & CR2_ITEVTEN) && (i2c_CR2 & CR2_ITBUFEN) )
 			{
+				cout << this->name() << " " << sc_time_stamp() << " " ;
 				cout<<"The TxE,ITBUFEN and ITEVTEN so sending interupt"<<endl;
-				m_eventEnableIntEvent.notify();
+				/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 			}
 		}
 	return;
 	}
 	if(receivedDataTlm.ackOrNack == NACK)
 	{
+		i2c_SR1 |= SR1_AF;
+        if( (i2c_SR1 & SR1_AF) && (i2c_CR2 & CR2_ITERREN) )
+        {
+            cout << this->name() << " " << sc_time_stamp() << " ";
+            cout<<"The AF and ITERREN so sending interupt"<<endl;
+            /*errorInteruptCB();*/m_errorEnableIntEvent.notify( );
+        }
 		cout<<"Nack is Recived in MAter in Response Phase"<<endl;
 	}
 
@@ -563,7 +643,7 @@ void i2c::handleMasterTransmit(const i2cDataTlm& receivedDataTlm)
 void i2c::masterHeaderPhase(const i2cDataTlm& receivedDataTlm)
 {
 	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
-		if(receivedDataTlm.genCall == true)
+	if(receivedDataTlm.genCall == true)
 	{
 		cout<<"Got ack in Master after gen call "<<endl;
 		i2c_SR1 |= SR1_ADDR;
@@ -578,8 +658,21 @@ void i2c::masterHeaderPhase(const i2cDataTlm& receivedDataTlm)
 	}
 	if(receivedDataTlm.ackOrNack == NACK)
 	{
-		cout<<"NACK  recived in master "<<endl;
+		cout<<"NACK  recived in master and setting AF"<<endl;
+		i2c_SR1 &= ~SR1_SB; 
+		//if(m_addressingMode == ADDR10)
 		i2c_SR1 |= SR1_AF;
+		if( (i2c_SR1 & SR1_AF) && (i2c_CR2 & CR2_ITERREN) )
+		{
+			cout << this->name() << " " << sc_time_stamp() << " ";
+			cout<<"The AF and ITERREN so sending interupt"<<endl;
+			/*errorInteruptCB();*/m_errorEnableIntEvent.notify( );
+		}
+		{
+			//cout<<"Clearing ADD10 after NACK_____________________"<<endl;
+			//i2c_SR1 = i2c_SR1 & ~SR1_ADD10;
+		}
+		cout<<"SR1 value is 0x"<<i2c_SR1<<endl;
 		return;
 	}
 	if(receivedDataTlm.ackOrNack == ACK)
@@ -603,8 +696,9 @@ void i2c::master7BitHeaderPhase()
 	m_masterResponsePhaseStartEvent.notify( );
 	if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 }
 
@@ -614,6 +708,11 @@ void i2c::master10BitHeaderPhase()
 	if(m_firstOrSecondHalf == WAIT_SECOND_HALF)
 	{
 		cout<<"Got ACK in MASTER after getting 2 bits of 10bit addr "<<endl;
+		/* i2c_SR1 |= SR1_ADD10;                          
+        if( (i2c_SR1 & SR1_ADD10) && (i2c_CR2 & CR2_ITEVTEN) )
+        {
+            m_eventEnableIntEvent.notify();             
+        } */
 	}
 	else if(m_firstOrSecondHalf == WAIT_FIRST_HALF && m_repeatedStartCheck == REPEATED_START_CAN_COME)
 	{
@@ -621,14 +720,16 @@ void i2c::master10BitHeaderPhase()
 		cout<<sc_time_stamp()<<"Got ACK in MASTER after getting full 10 bit addr matched "<<endl;
 		if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 	}
 	else if(m_repeatedStartCheck == REPEATED_START_SUCESS)
 	{
 		cout<<"Got ACK in MASTER after getting Repeated start sucess  "<<endl;
 		m_repeatedStartCheck = REPEATED_START_CANNOT_COME;
+		i2c_SR1 |= SR1_ADDR;
 		m_masterResponsePhaseStartEvent.notify();
 	}
 }
@@ -636,9 +737,12 @@ void i2c::master10BitHeaderPhase()
 void i2c::slaveHeaderPhase(i2cDataTlm& receivedDataTlm)
 {
 	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
+		cout<<"Got here buddyyyyyyyyyyyyyyyyyy2"<<endl;
+		cout<<"CR value is 0x"<<i2c_CR1<<endl;
 		
 	if(receivedDataTlm.start == true)
 	{
+		cout<<"Got here buddyyyyyyyyyyyyyyyyyy2"<<endl;
 		if( receivedDataTlm.address == 0x0c )//alert
 		{
 			handleAlertAddress();
@@ -659,7 +763,18 @@ void i2c::slaveHeaderPhase(i2cDataTlm& receivedDataTlm)
 		{
 			m_communicationStarted = true;
 			i2c_SR2 |= SR2_BUSY;
+			m_connectionEstablished = true; 
+			m_dataRegYetToRead = false;
 			cout<<"Slave found Master Received a Start Bit "<<endl;
+			if( m_addressingMode == ADDR10 && m_repeatedStartCheck == REPEATED_START_CAN_COME)
+			{
+
+			}
+			else
+			{
+				m_firstOrSecondHalf == WAIT_FIRST_HALF ;
+				m_repeatedStartCheck == REPEATED_START_CANNOT_COME;
+			}
 		}
 		else if( ( ( receivedDataTlm.addr7OrAddr10 == ADDR7 ) && ( m_addressingMode == ADDR7 ) ) )
 		{
@@ -706,14 +821,16 @@ void i2c::handleSlaveStop()
 	i2c_SR2 &= ~SR2_BUSY;
 	m_slaveHeaderOrResponsePhase = HEADER;
 	m_stopCondition = false;
+	m_connectionEstablished = false;
 	if( (i2c_SR1 & SR1_STOPF) )
 	{
 		i2c_SR2 &= ~SR2_TRA;
 	}
 	if( (i2c_SR1 & SR1_STOPF) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The STOP and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 }
 
@@ -730,10 +847,11 @@ void i2c::handlePEC(const i2cDataTlm& receivedDataTlm)
 	else
 	{
 		i2c_SR1 |= SR1_PECERR; 
-		if( (i2c_SR1 & SR1_PECERR) && (i2c_CR2 & CR2_ITEVTEN) )
+		if( (i2c_SR1 & SR1_PECERR) && (i2c_CR2 & CR2_ITERREN ) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The PECERR and ITEVTEN so sending interupt"<<endl;
-			m_errorEnableIntEvent.notify();;
+			/*errorInteruptCB();*/m_errorEnableIntEvent.notify();
 		}
 		m_AckRelatedOrNot = NACK_RELATED;
 		m_sdaAckDeassertEvent.notify( 8 * clockPeriod_i.read() );
@@ -754,10 +872,11 @@ void i2c::handleAlertAddress()
 	{
 		i2c_SR1 |= SR1_ADDR;
 		i2c_SR1 |= SR1_SMBALERT;
-		if( (i2c_SR1 & SR1_SMBALERT) && (i2c_CR2 & CR2_ITEVTEN) )
+		if( (i2c_SR1 & SR1_SMBALERT) && (i2c_CR2 & CR2_ITERREN ) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The SMBALERT and ITEVTEN so sending interupt"<<endl;
-			m_errorEnableIntEvent.notify();;
+			/*errorInteruptCB();*/m_errorEnableIntEvent.notify();
 		}
 		cout<<"Alert ADDR recived but CR1ALERT is LOW "<<endl;
 		m_AckRelatedOrNot = ACK_RELATED;
@@ -767,8 +886,9 @@ void i2c::handleAlertAddress()
 		//smb_alert_o.write(true);
 		if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 	}
 }
@@ -785,8 +905,9 @@ void i2c::handleDefaultAddress(const i2cDataTlm& receivedDataTlm)
 		m_sdaAckDeassertEvent.notify(clockPeriod_i.read());
 		if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 	}
 	else
@@ -810,8 +931,9 @@ void i2c::handleHostAddress(const i2cDataTlm& receivedDataTlm)
 		m_sdaAckDeassertEvent.notify(clockPeriod_i.read());
 		if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 	}
 	else
@@ -830,12 +952,15 @@ void i2c::handleGeneralCall()
 		m_AckRelatedOrNot = ACK_RELATED;
 		i2c_SR2 |= SR2_GENCALL;
 		i2c_SR1 |= SR1_ADDR;
+		m_slaveTransmitOrReceiver = RECEIVE;
+		slaveResponseTransisitionPhase();
 		m_sdaAckDeassertEvent.notify(clockPeriod_i.read());
 		//return;
 		if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 	}
 	else
@@ -850,6 +975,7 @@ void i2c::handleGeneralCall()
 void i2c::slave7BitHeaderPhase(const i2cDataTlm& receivedDataTlm)
 {
 	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
+	cout<<receivedDataTlm<<endl;
 	bool matchOAR1 = receivedDataTlm.address == getOwnAddress();
 	bool matchOAR2 = ( (i2c_OAR2 & OAR2_ENDUAL) && (receivedDataTlm.address == OWNADDR2) );
 	if(matchOAR1 || matchOAR2)
@@ -891,8 +1017,9 @@ void i2c::slave7BitHeaderPhase(const i2cDataTlm& receivedDataTlm)
 		}
 		if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 		m_stopCondition = false;
 	}
@@ -908,19 +1035,22 @@ void i2c::slave10BitHeaderPhase(i2cDataTlm& receivedDataTlm)
 {
 	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
 	//IN SLAVE RECIVE THE FIRST 2 BIT of 10 bit addressing
+	cout<<"wait and rep check "<<m_firstOrSecondHalf<<" "<<m_repeatedStartCheck<<endl;
 	if(m_firstOrSecondHalf == WAIT_FIRST_HALF && m_repeatedStartCheck == REPEATED_START_CANNOT_COME)
 	{
-		handleFirstHalf10BitAddr(receivedDataTlm);
+	cout<<"Sucesssssssssssssssssssssssssss 1st"<<endl;				
+		handleSlaveFirstHalf10BitAddr(receivedDataTlm);
 	}
 	//IN SLAVE receveing the rest 8 bit of 10 bit addressing
 	else if(m_firstOrSecondHalf == WAIT_SECOND_HALF && m_repeatedStartCheck == REPEATED_START_CANNOT_COME )
 	{
-		handleSecondHalf10BitAddr(receivedDataTlm);	
+	cout<<"Sucesssssssssssssssssssssssssss 2nd"<<endl;				
+		handleSlaveSecondHalf10BitAddr(receivedDataTlm);	
 	}
-					
+	cout<<"10 bit headr fail exiting"<<endl;				
 }
 
-void i2c::handleSecondHalf10BitAddr(i2cDataTlm& receivedDataTlm)
+void i2c::handleSlaveSecondHalf10BitAddr(i2cDataTlm& receivedDataTlm)
 {
 	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
 	receivedDataTlm.address = receivedDataTlm.address | m_firstHalf10BitAddr;
@@ -948,24 +1078,26 @@ void i2c::handleSecondHalf10BitAddr(i2cDataTlm& receivedDataTlm)
 		}
 		if( (i2c_SR1 & SR1_ADDR) && (i2c_CR2 & CR2_ITEVTEN) )
 		{
+			cout << this->name() << " " << sc_time_stamp() << " " ;
 			cout<<"The ADDR and ITEVTEN so sending interupt"<<endl;
-			m_eventEnableIntEvent.notify();;
+			/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 		}
 	}
 	else
 	{
 		i2c_SR1 = i2c_SR1  & ~SR1_ADDR; // Clear the bit 1 of SR reg (ADDR) when a Wrong 10 bit addr comes in.
 		cout << "Slave address from OAR1 register 0x" << hex << getOwnAddress() << " DOES NOT match to the received address on SDA line 0x" << hex << receivedDataTlm.address << endl;
+		m_AckRelatedOrNot = NACK_RELATED;
+		m_sdaAckDeassertEvent.notify( (1+7+1) * clockPeriod_i.read() );
 	}
 }
 
-void i2c::handleFirstHalf10BitAddr(i2cDataTlm& receivedDataTlm)
+void i2c::handleSlaveFirstHalf10BitAddr(i2cDataTlm& receivedDataTlm)
 {
 	cout << this->name() << " " << sc_time_stamp() << " " << __PRETTY_FUNCTION__ << endl;
 	cout<<"In slave received the first half of 10 bit addresss "<<endl;
 		m_firstHalf10BitAddr = receivedDataTlm.address<<8;
 		m_slaveTransmitOrReceiver = (receivedDataTlm.readOrWrite == READ)? TRANSMIT: RECEIVE;
-		m_firstOrSecondHalf = WAIT_SECOND_HALF;
 		m_repeatedStartCondition = false;
 		m_repeatedStartCheck = REPEATED_START_CANNOT_COME;
 		if(m_pecEnabled == true)
@@ -974,7 +1106,21 @@ void i2c::handleFirstHalf10BitAddr(i2cDataTlm& receivedDataTlm)
 										| ( receivedDataTlm.readOrWrite );
 				pecValueUpdate( addrByte );
 			}
-		m_slaveAddressAckEvent.notify( (7+1+1) * clockPeriod_i.read() );
+		if((m_firstHalf10BitAddr == ( getOwnAddress() & 0x300 )))
+		{
+			cout<<"Matching first 2 bits in 10 bit addressing"<<endl;
+			m_firstOrSecondHalf = WAIT_SECOND_HALF;
+			m_slaveAddressAckEvent.notify( (7+1+1) * clockPeriod_i.read() );
+		}
+		else
+		{
+			//i2c_SR1 = i2c_SR1  & ~SR1_ADDR; // Clear the bit 1 of SR reg (ADDR) when a Wrong 10 bit addr comes in.
+			cout << "Slave address from HIGH bit" << hex << getOwnAddress() << " DOES NOT match to the received address on SDA line 0x" << hex << receivedDataTlm.address << endl;
+			m_AckRelatedOrNot = NACK_RELATED;
+			m_firstOrSecondHalf = WAIT_FIRST_HALF;
+			m_firstHalf10BitAddr = 0x0;
+			m_sdaAckDeassertEvent.notify( (1+7+1) * clockPeriod_i.read() );		
+		}
 }
 
 void i2c::handleRepeatedStart(const i2cDataTlm& receivedDataTlm)
@@ -1023,13 +1169,15 @@ void i2c::handleSlaveTransmit(const i2cDataTlm& receivedDataTlm)
 				i2c_SR1 |= SR1_BTF;
 				if( (i2c_SR1 & SR1_BTF) && (i2c_CR2 & CR2_ITEVTEN) )
 				{
+					cout << this->name() << " " << sc_time_stamp() << " " ;
 					cout<<"The BTF and ITEVTEN so sending interupt"<<endl;
-					m_eventEnableIntEvent.notify();
+					/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 				}
 				if( (i2c_SR1 & SR1_TxE) && (i2c_CR2 & CR2_ITEVTEN) && (i2c_CR2 & CR2_ITBUFEN) )
 				{
+					cout << this->name() << " " << sc_time_stamp() << " " ;
 					cout<<"The TxE,ITBUFEN and ITEVTEN so sending interupt"<<endl;
-					m_eventEnableIntEvent.notify();
+					/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 				}
 			}
 		}
@@ -1076,7 +1224,7 @@ simple_bus_status i2c::read(int *data
 					{
 						break;
 					}
-					cout<<"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"<<"came to read"<<endl;
+					cout << this->name() << " " << sc_time_stamp() << " "<<"DR read happeing"<<endl;
 					m_dataRegYetToRead = false; //clearing since data is read from it;	
 
 					if( ((m_masterOrSlaveMode == MASTER_MODE) && (m_masterHeaderOrResponsePhase == RESPONSE) && (m_masterTransmitOrReceiver == ( RECEIVE ) ) ) ||
@@ -1090,13 +1238,14 @@ simple_bus_status i2c::read(int *data
 					   }
 					   if( (i2c_SR1 & SR1_BTF) == 0)
 					   {
+						cout << this->name() << " " << sc_time_stamp() << " "<<"Cleaning BTF"<<endl;
 							i2c_SR1 &= ~SR1_RxNE;
 					   }
 				   }
 				   break;
 
 		case 0x14: *data = ( i2c_SR1 & SR1_MASK );
-				    if( i2c_SR1 & SR1_ADDR )
+					if( i2c_SR1 & SR1_ADDR )
 					{
 						m_SR1ReadDone = true; 
 					}
@@ -1104,13 +1253,14 @@ simple_bus_status i2c::read(int *data
 					{
 						m_SR1ReadDone = true;   
 					}
-					cout<< this->name() << " " <<"Sr1 Read Doneeeeeeeeee 0x"<<i2c_SR1 <<" MasterOrSlave "<<m_masterOrSlaveMode<<endl;
-				   break;
+					cout << this->name() << " " << sc_time_stamp() << " "<<"Sr1 Read Doneeeeeeeeee 0x"<<i2c_SR1 <<" MasterOrSlave "<<m_masterOrSlaveMode<<endl;
+break;
 
 		case 0x18: *data = ( i2c_SR2 & SR2_MASK );
-					if(m_SR1ReadDone == true)
+					cout << this->name() << " " << sc_time_stamp() << " "<<"SR2 Reg READ done"<<endl;
+					if( ( m_SR1ReadDone == true ) && ( i2c_SR1 & SR1_ADDR ))
 					{
-						cout<< this->name() << " " << "Clearing ADDR after SR1 read followed by SR2 read________________________"<<endl;
+						cout << this->name() << " " << sc_time_stamp() << " "<< "Clearing ADDR after SR1 read followed by SR2 read________________________"<<endl;
 						i2c_SR1 = i2c_SR1 & ~SR1_ADDR;
 						m_SR1ReadDone = false;
 					}
@@ -1143,6 +1293,7 @@ simple_bus_status i2c::write(int *data
 				 
 				  if((i2c_CR1 & CR1_PE)==0)
 				  {
+					cout<<"Pe is zero buddy"<<endl;
 						i2c_SR1 = SR1_RESET;
 						i2c_SR2 = SR2_RESET;
 						break;
@@ -1191,14 +1342,15 @@ simple_bus_status i2c::write(int *data
 						}
 						if( (i2c_SR1 & SR1_SB) && (i2c_CR2 & CR2_ITEVTEN) )
 						{
+							cout << this->name() << " " << sc_time_stamp() << " " ;
 							cout<<"start bit enabled and ITEVTEN is HIGH"<<endl;
-							m_eventEnableIntEvent.notify();
+							/*eventInteruptCB();*/m_eventEnableIntEvent.notify();
 						}
 						i2c_CR1 &= ~CR1_START;
 				  }
 				  else if(i2c_CR1 & CR1_STOP)//stop
 				  {
-					cout<<"STOP written"<<endl;
+					cout<<"STOP written "<<i2c_SR1<<endl;
 
 					  m_communicationStarted =false;
 					  i2c_SR1 &= ~SR1_BTF;
@@ -1211,6 +1363,7 @@ simple_bus_status i2c::write(int *data
 					  }
 					  else
 					  {
+						cout<<"Calling Stop bit sender"<<endl;
 						stopBitSender();
 					  }
 				  }
@@ -1303,7 +1456,7 @@ simple_bus_status i2c::write(int *data
 							m_AckRelatedOrNot = NOT_ACK_RELATED;
 							cout<<"send"<<m_sendingTlm<<endl;
 							//m_sdaOutPortDriveEvent.notify();
-							//m_masterResponsePhaseStartEvent.notify();
+							masterResponseTransisitionPhase();
 							m_masterHeaderOrResponsePhase = RESPONSE;
 							
 						}
@@ -1327,6 +1480,7 @@ simple_bus_status i2c::write(int *data
 						//getting the first 2 bits of 8 bit addfrssing
 						if( ((i2c_DR & 0xf8) == 0xf0) && m_firstOrSecondHalf == WAIT_FIRST_HALF && m_repeatedStartCheck == REPEATED_START_CANNOT_COME )
 						{
+							cout<<"Sending first 2 bits of 10 bit addr"<<endl;
 							m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
 							m_sendingTlm.start = true;
 							m_sendingTlm.addr7OrAddr10 = ADDR10;
@@ -1344,7 +1498,14 @@ simple_bus_status i2c::write(int *data
 								i2c_SR1 = i2c_SR1 & ~SR1_SB;
 								m_SR1ReadDone = false;
 							}
-							i2c_SR1 = i2c_SR1 | SR1_ADD10;
+							cout<<"Setting ADD10 "<<endl;
+							 i2c_SR1 = i2c_SR1 | SR1_ADD10;
+							if( (i2c_SR1 & SR1_ADD10) && (i2c_CR2 & CR2_ITEVTEN) )
+							{
+								cout << this->name() << " " << sc_time_stamp() << " " ;
+								cout<<"The ADD10 and ITEVTEN so sending interupt"<<endl;
+								m_eventEnableIntEvent.notify();
+							} 
 							cout<<"SR1 status after getting first half "<<hex<<i2c_SR1<<endl;
 							cout<<"Send TLM "<<m_sendingTlm<<endl;
 
@@ -1357,11 +1518,7 @@ simple_bus_status i2c::write(int *data
 							}
 
 							m_sdaOutPortDriveEvent.notify();
-							if( (i2c_SR1 & SR1_ADD10) && (i2c_CR2 & CR2_ITEVTEN) )
-							{
-								cout<<"The ADD10 and ITEVTEN so sending interupt"<<endl;
-								m_eventEnableIntEvent.notify();
-							}
+							
 						}
 						//getting the rest 8 bit sin 10 bit addressing
 						else if(m_firstOrSecondHalf == WAIT_SECOND_HALF)
@@ -1429,16 +1586,18 @@ simple_bus_status i2c::write(int *data
 							cout<<"Gen Call )))))))))))))))"<<endl;
 								m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
 								m_sendingTlm.genCall = true;
+								m_sendingTlm.start = true;
 								m_sdaOutPortDriveEvent.notify();
 						}
 						//7 bit addressing
 						else
 						{
-							cout<<"Entered 7 bit"<<endl;
+							cout<<"Entered 7 bit "<<endl;
 							m_sendingTlm = {false, 0x0, ADDR7, READ, NACK, m_ackCount, 0x0, false, false, false, 0x0};
 							m_sendingTlm.start = true;
 							m_sendingTlm.addr7OrAddr10 = ADDR7;
 							m_sendingTlm.address = i2c_DR >> 1;
+							cout<<"The sending address is 0x"<<m_sendingTlm.address<<endl;
 							m_sendingTlm.readOrWrite = (i2c_DR & 0x1)? READ: WRITE;
 
 							m_masterTransmitOrReceiver = (i2c_DR & 0x1)? RECEIVE: TRANSMIT;
@@ -1478,7 +1637,8 @@ simple_bus_status i2c::write(int *data
 							{
 								pecValueUpdate(  (unsigned char)(*data & 0xFF) );
 							}
-						transmitDataEventCB();
+						//transmitDataEventCB();
+						m_transmitDataEvent.notify();
 						
 					}
 					else if( (m_masterOrSlaveMode == SLAVE_MODE) && (m_slaveHeaderOrResponsePhase == RESPONSE) && (m_slaveTransmitOrReceiver == TRANSMIT))
